@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bluetooth Home Automation Simulator</title>
+<style>
+:root{--bg:#e8eef0;--panel:#f7fafb;--ink:#14262b;--mut:#587077;--line:#c5d2d6;--acc:#2f6df6;--ok:#1f9d55;--bad:#d64545;--log:#0d171a;--logink:#cfe3e8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d171a;--panel:#162327;--ink:#e3eff2;--mut:#93aab1;--line:#27393f;--log:#091114}}
+:root[data-theme="dark"]{--bg:#0d171a;--panel:#162327;--ink:#e3eff2;--mut:#93aab1;--line:#27393f;--log:#091114}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
+h1{font-size:1.5rem;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--mut);margin:0 0 14px;max-width:70ch}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.8rem;border:1px solid var(--line);background:var(--panel)}
+.pill b{color:var(--acc)}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:12px 0 16px}
+.chip{padding:6px 12px;border-radius:8px;border:1.5px solid var(--line);background:var(--panel);font-weight:600;font-size:.88rem;transition:background .15s,color .15s,border-color .15s}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.arr{color:var(--mut)}
+.main{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(290px,1fr);gap:16px}
+@media(max-width:900px){.main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.card h2{font-size:1rem;margin:0 0 8px}
+.scroll{overflow-x:auto}
+svg{display:block;min-width:640px;width:100%;height:auto}
+svg text{font-family:system-ui,sans-serif}
+.wire{fill:none;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.wire.live{stroke-dasharray:8 6;stroke-width:5;animation:dash .35s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-14}}
+.led .glow{fill:var(--c);opacity:0;filter:blur(8px);transition:opacity .2s}
+.led .bulb{fill:var(--c);opacity:.22;transition:opacity .2s}
+.led.on .glow{opacity:.75}.led.on .bulb{opacity:1}
+#hcled{fill:#ff3b30}
+#hcled.fast{animation:bl .5s steps(1) infinite}
+#hcled.slow{animation:bl2 2s steps(1) infinite;fill:#7aa2ff}
+@keyframes bl{50%{opacity:.1}}
+@keyframes bl2{0%,12%,24%{opacity:1}6%,18%,30%,100%{opacity:.1}}
+.phone{width:min(100%,290px);margin:0 auto;background:#0b1114;border:2px solid #2b3b41;border-radius:30px;padding:14px 12px 16px}
+.screen{background:#f1f5f6;color:#14262b;border-radius:18px;padding:12px}
+.screen h3{margin:0 0 8px;font-size:1.05rem}
+.bt{display:flex;align-items:center;gap:8px;font-size:.85rem;margin-bottom:10px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--bad);flex:none}
+.dot.ok{background:var(--ok)}.dot.wait{background:#e0a100}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.btn{border:1.5px solid #2f6df6;background:#2f6df6;color:#fff;border-radius:8px;padding:4px 10px;font-size:.82rem;margin-left:auto}
+.row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #d5dfe2}
+.row .n{flex:1;font-weight:600;display:flex;align-items:center;gap:8px}
+.row .n i{width:12px;height:12px;border-radius:50%}
+.seg{display:flex;border:1.5px solid #9fb2b8;border-radius:8px;overflow:hidden}
+.seg button{border:0;background:#fff;color:#14262b;padding:5px 12px;font-weight:600;font-size:.85rem}
+.seg button:disabled{opacity:.45;cursor:not-allowed}
+.seg button.act{background:#14262b;color:#fff}
+.rst{width:100%;margin-top:10px;padding:8px;border-radius:8px;border:1.5px solid #b4413b;background:#fff;color:#b4413b;font-weight:700}
+.tiny{background:none;border:0;color:#587077;text-decoration:underline;font-size:.78rem;margin-top:8px;padding:0}
+#log{list-style:none;margin:0;padding:8px;background:var(--log);color:var(--logink);border-radius:8px;height:230px;overflow:auto;font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace}
+#log li{padding:1px 0}#log .t{color:#6f8a92}#log .tx b{color:#7aa2ff}#log .rx b{color:#5fd68a}#log .sys{color:#e0b84d}
+details{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-top:10px;padding:8px 14px}
+summary{cursor:pointer;font-weight:600;padding:4px 0}
+table{border-collapse:collapse;width:100%;font-size:.88rem;margin:8px 0}
+td,th{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left}
+pre{background:var(--log);color:var(--logink);padding:12px;border-radius:8px;overflow:auto;font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head>
+<body><div class="wrap">
+<h1>Bluetooth-controlled home automation</h1>
+<p class="sub">Arduino UNO + HC-05 + three LEDs on a breadboard. No relays, no mains. <span class="pill"><b>Virtual Bluetooth link:</b> the radio and phone are simulated; command parsing and LED control follow the real sketch.</span></p>
+<div class="flow" aria-label="Signal flow"><span class="chip">Android app</span><span class="arr">→</span><span class="chip">Bluetooth (virtual)</span><span class="arr">→</span><span class="chip">HC-05</span><span class="arr">→</span><span class="chip">Arduino UNO</span><span class="arr">→</span><span class="chip">LED outputs</span></div>
+
+<div class="main">
+ <div class="card"><h2>Circuit (breadboard view)</h2><div class="scroll"><svg id="ckt" viewBox="0 0 780 550" role="img" aria-label="Arduino UNO, HC-05 and three LEDs wired on a breadboard"></svg></div></div>
+ <div>
+  <div class="phone"><div class="screen">
+   <h3>Home Control</h3>
+   <div class="bt"><span class="dot" id="pdot"></span><span id="ptxt">Disconnected</span><button class="btn" id="conn">Connect</button></div>
+   <div id="rows"></div>
+   <button class="rst" id="rst">Reset (all LEDs OFF)</button>
+   <button class="tiny" id="bad">Send invalid command "X9"</button>
+  </div></div>
+  <div class="card" style="margin-top:14px"><h2>Command log</h2><ul id="log" aria-live="polite"></ul></div>
+ </div>
+</div>
+
+<details><summary>Connection table</summary>
+<table><tr><th>From</th><th>To</th></tr>
+<tr><td>Arduino 5V</td><td>Breadboard + rail, then HC-05 VCC</td></tr>
+<tr><td>Arduino GND</td><td>Breadboard GND rail (shared with HC-05 GND and LED cathodes)</td></tr>
+<tr><td>HC-05 TXD</td><td>Arduino D2 (SoftwareSerial RX)</td></tr>
+<tr><td>Arduino D3</td><td>1 kΩ → junction → HC-05 RXD; 2 kΩ from junction → GND rail</td></tr>
+<tr><td>D7</td><td>220 Ω → Red LED anode, cathode → GND rail</td></tr>
+<tr><td>D8</td><td>220 Ω → Yellow LED anode, cathode → GND rail</td></tr>
+<tr><td>D9</td><td>220 Ω → Green LED anode, cathode → GND rail</td></tr>
+<tr><td>Arduino power</td><td>USB 5 V</td></tr></table>
+<p>LED current is about (5 V − 2 V) / 220 Ω ≈ 14 mA, inside the UNO's 20 mA per-pin comfort range. The divider gives 5 V × 2k / (1k + 2k) ≈ 3.3 V at HC-05 RXD.</p></details>
+
+<details><summary>Arduino sketch</summary><pre id="sk">/*
+  Bluetooth-Controlled Home Automation (LED demo)
+  Board : Arduino UNO
+  Module: HC-05 in data mode, 9600 baud
+  Wiring: HC-05 TXD -&gt; D2, HC-05 RXD &lt;- D3 (via 1k/2k divider)
+          Red LED D7, Yellow LED D8, Green LED D9 (220 ohm each)
+  Commands: R1/R0, Y1/Y0, G1/G0 (anything else is ignored)
+*/
+#include &lt;SoftwareSerial.h&gt;
+
+SoftwareSerial BT(2, 3);          // RX = D2, TX = D3
+
+const byte RED_PIN    = 7;
+const byte YELLOW_PIN = 8;
+const byte GREEN_PIN  = 9;
+
+char buf[2];                      // one 2-character command
+byte count = 0;
+
+void setup() {
+  pinMode(RED_PIN, OUTPUT);
+  pinMode(YELLOW_PIN, OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+  digitalWrite(RED_PIN, LOW);     // all LEDs start OFF
+  digitalWrite(YELLOW_PIN, LOW);
+  digitalWrite(GREEN_PIN, LOW);
+
+  BT.begin(9600);
+  Serial.begin(9600);             // optional: debug on Serial Monitor
+  Serial.println(F(&quot;Ready&quot;));
+}
+
+void loop() {
+  while (BT.available()) {
+    char c = BT.read();
+    if (c == &#x27;\n&#x27; || c == &#x27;\r&#x27;) { // end of line: start a fresh command
+      count = 0;
+      continue;
+    }
+    buf[count++] = c;
+    if (count == 2) {             // full command received
+      handleCommand(buf[0], buf[1]);
+      count = 0;
+    }
+  }
+}
+
+void handleCommand(char device, char action) {
+  int pin = -1;
+  if      (device == &#x27;R&#x27;) pin = RED_PIN;
+  else if (device == &#x27;Y&#x27;) pin = YELLOW_PIN;
+  else if (device == &#x27;G&#x27;) pin = GREEN_PIN;
+
+  if (pin == -1 || (action != &#x27;0&#x27; &amp;&amp; action != &#x27;1&#x27;)) {
+    Serial.print(F(&quot;Ignored: &quot;));
+    Serial.print(device);
+    Serial.println(action);
+    return;                       // invalid command: do nothing
+  }
+  digitalWrite(pin, action == &#x27;1&#x27; ? HIGH : LOW);
+  Serial.print(device);
+  Serial.println(action == &#x27;1&#x27; ? F(&quot; ON&quot;) : F(&quot; OFF&quot;));
+}
+</pre></details>
+
+<details><summary>Test procedure</summary><ol>
+<li>Tap <b>Connect</b>: status turns green and the HC-05 LED changes from fast to slow blink.</li>
+<li>Tap Red <b>ON</b>: log shows <code>R1</code>, the red LED glows, D7 reads 5 V.</li>
+<li>Tap Yellow <b>ON</b>, then Green <b>ON</b>: all three light, each independently.</li>
+<li>Tap Red <b>OFF</b>: only red turns off (<code>R0</code>); yellow and green stay on.</li>
+<li>Tap <b>Send invalid command</b>: the Arduino logs it as ignored and nothing changes.</li>
+<li>Tap <b>Reset</b>: all LEDs go OFF.</li></ol></details>
+
+<details><summary>What is simulated and what is virtual</summary>
+<p><b>Modeled:</b> the wiring and pin labels, HIGH/LOW pin states, LED on/off behavior, and the byte-by-byte command parser, which is a JavaScript port of the sketch above (same 2-character buffer, newline handling and invalid-command rule).</p>
+<p><b>Virtual:</b> the Android phone, the Bluetooth radio and pairing, and timing. The page does not run the compiled .ino or a real electrical simulation.</p>
+<p><b>Limitations:</b> this was not verified in Wokwi or Cirkit Designer, so it is a standalone browser simulation. On real hardware the HC-05 must be paired with the phone and be in data mode at 9600 baud (AT mode defaults differ), and a serial Bluetooth terminal app can send the same commands.</p></details>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const LEDS=[{k:'R',p:7,n:'Red',c:'#ff3b30',w:'#e5484d',x:310},{k:'Y',p:8,n:'Yellow',c:'#ffd60a',w:'#d9a400',x:220},{k:'G',p:9,n:'Green',c:'#34c759',w:'#2ea043',x:130}];
+const MAP={R:7,Y:8,G:9},NAME={7:'Red',8:'Yellow',9:'Green'};
+const pins={7:0,8:0,9:0};let connected=false;
+
+/* ---------- circuit drawing ---------- */
+const wire=(pts,c,id)=>`<polyline ${id?`id="${id}" `:''}class="wire" stroke="${c}" points="${pts}"/>`;
+const dot=(x,y,r=3.5)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#222"/>`;
+const res=(x,y,b,lbl,left)=>`<rect x="${x-6}" y="${y}" width="12" height="34" rx="3" fill="#d8b980" stroke="#8a6b34"/>`+b.map((c,i)=>`<rect x="${x-6}" y="${y+6+i*7}" width="12" height="3.5" fill="${c}"/>`).join('')+`<text x="${left?x-12:x+14}" y="${y+21}" font-size="11" fill="#2b3b41" text-anchor="${left?'end':'start'}">${lbl}</text>`;
+let s=`<defs><pattern id="holes" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="6" cy="6" r="1.8" fill="#9aa5ac"/></pattern></defs>`;
+/* breadboard */
+s+=`<rect x="20" y="300" width="740" height="245" rx="10" fill="#e3e7ea" stroke="#b5bec4"/><rect x="34" y="304" width="712" height="34" fill="url(#holes)"/><rect x="34" y="345" width="712" height="190" fill="url(#holes)" opacity=".8"/>`;
+s+=`<line x1="40" x2="740" y1="312" y2="312" stroke="#d92d20" stroke-width="3"/><line x1="40" x2="740" y1="326" y2="326" stroke="#2457d6" stroke-width="3"/>`;
+s+=`<text x="748" y="310" font-size="10" text-anchor="end" fill="#8a1f16">+5 V rail</text><text x="748" y="340" font-size="10" text-anchor="end" fill="#1b3f9a">GND rail</text><text x="36" y="535" font-size="11" fill="#587077">Breadboard</text>`;
+/* Arduino */
+s+=`<rect x="20" y="20" width="420" height="190" rx="8" fill="#0f7c85" stroke="#0a5961" stroke-width="2"/><rect x="6" y="50" width="46" height="60" fill="#c9ced4" stroke="#8d949c"/><text x="29" y="84" font-size="11" text-anchor="middle" fill="#222">USB</text><text x="29" y="126" font-size="10" text-anchor="middle" fill="#fff">5 V in</text>`;
+s+=`<text x="240" y="70" font-size="24" font-weight="700" text-anchor="middle" fill="#fff">ARDUINO UNO</text><rect x="190" y="95" width="120" height="34" rx="3" fill="#222"/><text x="250" y="116" font-size="11" text-anchor="middle" fill="#bbb">ATmega328P</text><circle cx="400" cy="55" r="4" fill="#6fe86f"/><text x="388" y="59" font-size="9" text-anchor="end" fill="#fff">ON</text>`;
+s+=`<rect x="36" y="204" width="400" height="12" fill="#1a1a1a"/>`;
+const AP=[['5V',50],['GND',90],['D9',130],['D8',220],['D7',310],['D3',365],['D2',415]];
+AP.forEach(([n,x])=>s+=`<rect x="${x-5}" y="205" width="10" height="10" fill="#d4af37"/><text x="${x}" y="194" font-size="12" font-weight="600" text-anchor="middle" fill="#fff">${n}</text>`);
+/* HC-05 */
+s+=`<rect x="480" y="20" width="280" height="110" rx="6" fill="#1d4ea8" stroke="#12337a" stroke-width="2"/><text x="620" y="36" font-size="12" text-anchor="middle" fill="#cfe0ff">HC-05 Bluetooth module</text><rect x="560" y="44" width="120" height="42" fill="#c4cad1" stroke="#8d949c"/><text x="620" y="70" font-size="15" font-weight="700" text-anchor="middle" fill="#333">HC-05</text><circle id="hcled" class="fast" cx="510" cy="48" r="6"/>`;
+[['VCC',530],['GND',590],['TXD',650],['RXD',710]].forEach(([n,x])=>s+=`<rect x="${x-6}" y="123" width="12" height="12" fill="#d4af37"/><text x="${x}" y="114" font-size="12" font-weight="600" text-anchor="middle" fill="#fff">${n}</text>`);
+/* LED branches */
+LEDS.forEach(L=>{const x=L.x,lx=x+30;
+ s+=wire(`${x},210 ${x},350`,L.w)+res(x,350,['#b3261e','#b3261e','#7a4a21'],'220 Ω',true)+wire(`${x},384 ${x},398 ${lx},398 ${lx},422`,L.w);
+ s+=`<g id="led${L.p}" class="led" style="--c:${L.c}"><circle class="glow" cx="${lx}" cy="436" r="26"/><circle class="bulb" cx="${lx}" cy="436" r="14" stroke="#333" stroke-width="1.5"/></g>`;
+ s+=`<text x="${lx+18}" y="424" font-size="9" fill="#2b3b41">A</text><text x="${lx+18}" y="462" font-size="9" fill="#2b3b41">K</text>`;
+ s+=wire(`${lx},450 ${lx},462 ${x+50},462 ${x+50},326`,'#333')+dot(x+50,326)+dot(x,350,3);
+ s+=`<text x="${lx}" y="500" font-size="12" font-weight="700" text-anchor="middle" fill="#2b3b41">${L.n} LED</text><text x="${lx}" y="514" font-size="11" text-anchor="middle" fill="#587077">via D${L.p}</text>`;
+ s+=`<text id="v${L.p}" x="${x+6}" y="236" font-size="11" font-weight="700" fill="#587077">0 V</text>`;
+});
+/* voltage divider */
+s+=wire('365,210 365,285 500,285 500,350','#7c3aed')+res(500,350,['#7a4a21','#222','#b3261e'],'R1 1 kΩ')+`<line x1="500" y1="384" x2="500" y2="410" stroke="#555" stroke-width="2"/>`+res(500,410,['#b3261e','#222','#b3261e'],'R2 2 kΩ');
+s+=wire('500,396 710,396 710,130','#7c3aed')+dot(500,396,5)+`<text x="515" y="390" font-size="11" fill="#4c1d95">junction ≈ 3.3 V</text><text x="610" y="418" font-size="11" fill="#4c1d95">to HC-05 RXD</text>`;
+s+=wire('500,444 500,458 470,458 470,326','#333')+dot(470,326);
+/* power + signal wires */
+s+=wire('50,210 50,312','#d92d20')+dot(50,312)+wire('90,210 90,326','#222')+dot(90,326);
+s+=wire('530,130 530,312','#d92d20')+dot(530,312)+wire('590,130 590,326','#222')+dot(590,326);
+s+=wire('415,210 415,240 650,240 650,130','#f08c00','w-d2')+`<text x="540" y="233" font-size="11" fill="#9a5b00">HC-05 TXD → D2</text>`;
+$('#ckt').innerHTML=s;
+
+/* ---------- Arduino logic (port of the sketch) ---------- */
+const UNO={buf:'',rx(c){
+ if(c==='\n'||c==='\r'){this.buf='';return}
+ this.buf+=c;if(this.buf.length<2)return;
+ const a=this.buf[0],b=this.buf[1];this.buf='';const p=MAP[a];
+ if(p&&(b==='0'||b==='1')){pins[p]=+b;render();log('rx',`Arduino got <b>${a}${b}</b>: ${NAME[p]} LED (D${p}) ${b==='1'?'ON':'OFF'}`)}
+ else log('rx',`Arduino got <b>${a}${b}</b>: invalid, ignored`)}};
+
+/* ---------- UI ---------- */
+$('#rows').innerHTML=['R','Y','G'].map(k=>{const L=LEDS.find(l=>l.k===k);return `<div class="row"><span class="n"><i style="background:${L.c}"></i>${L.n} LED</span><span class="seg"><button data-c="${k}1" data-p="${L.p}" disabled>ON</button><button data-c="${k}0" data-p="${L.p}" disabled>OFF</button></span></div>`}).join('');
+function log(kind,html){const li=document.createElement('li');li.className=kind;li.innerHTML=`<span class="t">${new Date().toTimeString().slice(0,8)}</span> ${html}`;const l=$('#log');l.appendChild(li);l.scrollTop=l.scrollHeight}
+function render(){
+ for(const p in pins){$('#led'+p).classList.toggle('on',!!pins[p]);const v=$('#v'+p);v.textContent=pins[p]?'5 V':'0 V';v.setAttribute('fill',pins[p]?'#1f9d55':'#587077')}
+ document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('act',pins[b.dataset.p]===+b.dataset.c[1]))}
+function setBT(st){const ok=connected,wait=st==='wait';
+ $('#pdot').className='dot'+(ok?' ok':wait?' wait':'');
+ $('#ptxt').textContent=ok?'Connected to HC-05':wait?'Pairing…':'Disconnected';
+ $('#conn').textContent=ok?'Disconnect':'Connect';
+ $('#hcled').setAttribute('class',ok?'slow':'fast');
+ document.querySelectorAll('.seg button').forEach(b=>b.disabled=!ok)}
+function send(cmd){
+ if(!connected){log('sys','Not connected. Tap Connect first.');return}
+ log('tx',`Phone sent <b>${cmd}</b> over virtual Bluetooth`);
+ const ch=[...document.querySelectorAll('.chip')],t=[0,180,360,540,720];
+ ch.forEach((c,i)=>{setTimeout(()=>c.classList.add('on'),t[i]);setTimeout(()=>c.classList.remove('on'),t[i]+300)});
+ setTimeout(()=>$('#w-d2').classList.add('live'),360);setTimeout(()=>$('#w-d2').classList.remove('live'),720);
+ setTimeout(()=>{for(const c of cmd+'\n')UNO.rx(c)},540)}
+$('#rows').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.disabled)send(b.dataset.c)});
+$('#bad').onclick=()=>send('X9');
+$('#conn').onclick=()=>{
+ if(connected){connected=false;setBT();log('sys','Bluetooth link closed. LEDs keep their last state.');return}
+ setBT('wait');log('sys','Pairing with HC-05 (virtual link)…');
+ setTimeout(()=>{connected=true;setBT();log('sys','Connected. HC-05 now forwards serial data at 9600 baud to D2.')},900)};
+$('#rst').onclick=()=>{for(const p in pins)pins[p]=0;render();log('sys','Reset: setup() re-ran, D7, D8 and D9 are LOW. All LEDs OFF.')};
+render();setBT();log('sys','Simulator ready. Tap Connect on the phone to start.');
+</script></body></html>
